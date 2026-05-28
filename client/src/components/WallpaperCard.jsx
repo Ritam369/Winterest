@@ -1,5 +1,5 @@
 const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
-  const { url, tags, clicks, downloads, orientation } = wallpaper;
+  const { url, tags = [], clicks, downloads } = wallpaper;
 
   const handleDownload = (e) => {
     e.stopPropagation();
