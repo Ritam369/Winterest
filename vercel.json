@@ -11,10 +11,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "server/src/index.js": {
-      "runtime": "@vercel/node@5"
-    }
-  }
+  ]
 }
