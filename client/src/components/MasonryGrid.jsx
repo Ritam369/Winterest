@@ -1,6 +1,6 @@
 import WallpaperCard from './WallpaperCard.jsx';
 
-const MasonryGrid = ({ wallpapers, onCardClick, onDownload }) => {
+const MasonryGrid = ({ wallpapers = [], onCardClick, onDownload }) => {
   if (wallpapers.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 text-[var(--color-ash)]">

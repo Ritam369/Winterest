@@ -10,7 +10,7 @@ const useWallpapers = () => {
   useEffect(() => {
     api
       .get('/wallpapers')
-      .then((res) => setWallpapers(res.data.data))
+      .then((res) => setWallpapers(res.data.data ?? []))
       .catch(() => setError('Failed to load wallpapers'))
       .finally(() => setLoading(false));
   }, []);
@@ -19,7 +19,7 @@ const useWallpapers = () => {
     if (!query.trim()) return wallpapers;
     const q = query.trim().toLowerCase();
     return wallpapers.filter((w) =>
-      w.tags.some((tag) => tag.includes(q))
+      (w.tags ?? []).some((tag) => tag.includes(q))
     );
   }, [wallpapers, query]);
 
@@ -37,7 +37,7 @@ const useWallpapers = () => {
     );
   };
 
-  return { wallpapers: filtered, query, setQuery, loading, error, trackClick, trackDownload };
+  return { wallpapers: filtered ?? [], query, setQuery, loading, error, trackClick, trackDownload };
 };
 
 export default useWallpapers;
