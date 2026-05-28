@@ -1,27 +1,20 @@
 {
   "version": 2,
-  "builds": [
+  "buildCommand": "cd client && pnpm install && pnpm build",
+  "outputDirectory": "client/dist",
+  "rewrites": [
     {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+      "source": "/api/(.*)",
+      "destination": "/server/src/index.js"
     },
     {
-      "src": "server/src/index.js",
-      "use": "@vercel/node"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server/src/index.js"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "client/dist/index.html"
+  "functions": {
+    "server/src/index.js": {
+      "runtime": "@vercel/node@5"
     }
-  ]
+  }
 }
