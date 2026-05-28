@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 
 const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
+  const tags = wallpaper.tags ?? [];
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -32,10 +34,8 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      {/* Blurred backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
 
-      {/* Modal card */}
       <div
         className="relative z-10 max-w-5xl w-full max-h-[90svh] bg-[var(--color-canvas)] rounded-[var(--radius-lg)] overflow-hidden shadow-2xl flex flex-col md:flex-row"
         onClick={(e) => e.stopPropagation()}
@@ -44,14 +44,13 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
         <div className="flex-1 bg-[var(--color-charcoal)] flex items-center justify-center overflow-hidden">
           <img
             src={wallpaper.url}
-            alt={wallpaper.tags.join(', ') || 'wallpaper'}
+            alt={tags.join(', ') || 'wallpaper'}
             className="max-w-full max-h-[90svh] md:max-h-[85svh] object-contain"
           />
         </div>
 
         {/* Sidebar */}
         <div className="md:w-64 shrink-0 p-6 flex flex-col gap-5 border-t md:border-t-0 md:border-l border-[var(--color-hairline-soft)]">
-          {/* Close */}
           <button
             onClick={onClose}
             className="self-end w-9 h-9 flex items-center justify-center rounded-full bg-[var(--color-surface-card)] hover:bg-[var(--color-secondary-pressed)] transition-colors"
@@ -61,7 +60,6 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
             </svg>
           </button>
 
-          {/* Stats */}
           <div className="flex gap-4 text-sm text-[var(--color-mute)]">
             <span className="flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -80,12 +78,11 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
             </span>
           </div>
 
-          {/* Tags */}
-          {wallpaper.tags.length > 0 && (
+          {tags.length > 0 && (
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold text-[var(--color-ash)] uppercase tracking-wide">Tags</p>
               <div className="flex flex-wrap gap-1.5">
-                {wallpaper.tags.map((tag) => (
+                {tags.map((tag) => (
                   <span
                     key={tag}
                     className="bg-[var(--color-surface-card)] text-[var(--color-body)] text-xs font-semibold px-3 py-1 rounded-full"
@@ -97,14 +94,12 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
             </div>
           )}
 
-          {/* Dimensions */}
           <div className="flex flex-col gap-1 text-sm text-[var(--color-mute)]">
             <p className="text-xs font-semibold text-[var(--color-ash)] uppercase tracking-wide">Info</p>
             <p>{wallpaper.width} × {wallpaper.height}px</p>
             <p className="capitalize">{wallpaper.orientation} · {wallpaper.format.toUpperCase()}</p>
           </div>
 
-          {/* Download CTA */}
           <button
             onClick={handleDownload}
             className="mt-auto flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-pressed)] text-white font-bold text-sm h-10 rounded-[var(--radius-md)] transition-colors"
