@@ -5,7 +5,7 @@ import ApiError from '../../common/utils/api-error.js';
 
 export const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
     const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
