@@ -1,21 +1,12 @@
+import downloadWallpaper from '../hooks/downloadWallpaper.js';
+
 const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
-  const { _id, url, format, tags = [], clicks, downloads } = wallpaper;
+  const { url, tags = [], clicks, downloads } = wallpaper;
 
   const handleDownload = async (e) => {
     e.stopPropagation();
     onDownload();
-    try {
-      const res = await fetch(wallpaper.url);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = `winterest-${wallpaper._id}.${wallpaper.format}`;
-      a.click();
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      window.open(wallpaper.url, '_blank');
-    }
+    await downloadWallpaper(wallpaper);
   };
 
   return (

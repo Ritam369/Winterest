@@ -4,10 +4,12 @@ import MasonryGrid from './components/MasonryGrid.jsx';
 import WallpaperModal from './components/WallpaperModal.jsx';
 import useWallpapers from './hooks/useWallpapers.js';
 import SkeletonGrid from './components/SkeletonGrid.jsx';
+import useTheme from './hooks/useTheme.js';
 
 const App = () => {
   const { wallpapers, query, setQuery, loading, error, trackClick, trackDownload } = useWallpapers();
   const [selected, setSelected] = useState(null);
+  const { dark, toggle } = useTheme();
 
   const handleCardClick = (wallpaper) => {
     setSelected(wallpaper);
@@ -20,7 +22,7 @@ const App = () => {
 
   return (
     <div className="min-h-svh bg-[var(--color-canvas)]">
-      <Navbar query={query} onSearch={setQuery} />
+      <Navbar query={query} onSearch={setQuery} dark={dark} onToggleTheme={toggle} />
 
       <main className="max-w-screen-2xl mx-auto">
         {loading && <SkeletonGrid />}
