@@ -3,6 +3,7 @@ import Navbar from './components/Navbar.jsx';
 import MasonryGrid from './components/MasonryGrid.jsx';
 import WallpaperModal from './components/WallpaperModal.jsx';
 import useWallpapers from './hooks/useWallpapers.js';
+import SkeletonGrid from './components/SkeletonGrid.jsx';
 
 const App = () => {
   const { wallpapers, query, setQuery, loading, error, trackClick, trackDownload } = useWallpapers();
@@ -22,11 +23,7 @@ const App = () => {
       <Navbar query={query} onSearch={setQuery} />
 
       <main className="max-w-screen-2xl mx-auto">
-        {loading && (
-          <div className="flex justify-center items-center py-32">
-            <div className="w-8 h-8 border-2 border-[var(--color-hairline)] border-t-[var(--color-primary)] rounded-full animate-spin" />
-          </div>
-        )}
+        {loading && <SkeletonGrid />}
 
         {error && (
           <div className="flex justify-center py-32">
