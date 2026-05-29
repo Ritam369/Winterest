@@ -6,7 +6,12 @@ import apiKeyMiddleware from '../../common/middleware/apiKey.js';
 const router = Router();
 
 router.get('/', wallpaperController.getWallpapers);
-router.post('/', apiKeyMiddleware, upload.single('image'), wallpaperController.uploadWallpaper);
+router.post('/', apiKeyMiddleware, (req, res, next) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
+}, wallpaperController.uploadWallpaper);
 router.delete('/:id', apiKeyMiddleware, wallpaperController.removeWallpaper);
 router.patch('/:id/click', wallpaperController.trackClick);
 router.patch('/:id/download', wallpaperController.trackDownload);

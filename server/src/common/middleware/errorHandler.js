@@ -10,7 +10,8 @@ const errorHandler = (err, req, res, next) => {
 
   // Multer errors
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return next(ApiError.badRequest('File size exceeds the 10MB limit. Please upload a smaller image or compress the current one!'));
+    const multerErr = ApiError.badRequest('File size exceeds the 10MB limit. Please upload a smaller image or compress the current one!');
+    return res.status(multerErr.statusCode).json({ success: false, message: multerErr.message });
   }
 
   console.error(err);
