@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch --env-file=../.env src/server.js",
+    "build": "npm rebuild sharp",
     "start": "node src/server.js"
   },
   "keywords": [],
