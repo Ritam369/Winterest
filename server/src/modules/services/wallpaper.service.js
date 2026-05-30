@@ -1,11 +1,12 @@
 import multer from 'multer';
+import sharp from 'sharp';
 import cloudinary from '../../common/config/cloudinary.js';
 import Wallpaper from '../models/wallpaper.model.js';
 import ApiError from '../../common/utils/api-error.js';
 
 export const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
     const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -14,6 +15,20 @@ export const upload = multer({
     else cb(new Error('Only jpg, png and webp files are allowed'));
   },
 });
+
+const LIMIT_BYTES = 10 * 1024 * 1024; // 10MB
+
+const compressToLimit = async (buffer, format) => {
+  let quality = 85;
+  let result = buffer;
+  while (result.length > LIMIT_BYTES && quality >= 20) {
+    result = await sharp(buffer)
+      .toFormat(format === 'png' ? 'png' : 'jpeg', { quality })
+      .toBuffer();
+    quality -= 15;
+  }
+  return result;
+};
 
 const uploadToCloudinary = (buffer) =>
   new Promise((resolve, reject) => {
@@ -40,7 +55,11 @@ const normalizeTags = (raw) => {
 };
 
 export const createWallpaper = async (file, body) => {
-  const result = await uploadToCloudinary(file.buffer);
+  const fmt = file.mimetype === 'image/png' ? 'png' : 'jpeg';
+  const buffer = file.buffer.length > LIMIT_BYTES
+    ? await compressToLimit(file.buffer, fmt)
+    : file.buffer;
+  const result = await uploadToCloudinary(buffer);
   const { public_id, secure_url, width, height, format } = result;
 
   const tags = normalizeTags(body.tags);
