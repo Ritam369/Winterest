@@ -24,7 +24,8 @@ const App = () => {
     <div className="min-h-svh bg-[var(--color-canvas)]">
       <Navbar query={query} onSearch={setQuery} dark={dark} onToggleTheme={toggle} />
 
-      <main className="max-w-screen-2xl mx-auto">
+      {/* <main className="max-w-screen-2xl mx-auto"> */}
+      <main className="w-full px-4 md:px-8">
         {loading && <SkeletonGrid />}
 
         {error && (

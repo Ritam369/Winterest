@@ -15,7 +15,7 @@ const MasonryGrid = ({ wallpapers = [], onCardClick, onDownload }) => {
   }
 
   return (
-    <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-2 px-2 py-4">
+    <div className="columns-2 sm:columns-2 md:columns-2 lg:columns-3 xl:columns-4 gap-3 px-1 py-4">
       {wallpapers.map((wallpaper) => (
         <WallpaperCard
           key={wallpaper._id}
