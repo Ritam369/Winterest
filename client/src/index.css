@@ -48,6 +48,22 @@
   --color-on-dark: #f0f0ee;
 }
 
+@custom-variant hoverable {
+  @media (hover: hover) {
+    &:hover {
+      @slot;
+    }
+  }
+}
+
+@custom-variant group-hoverable {
+  @media (hover: hover) {
+    .group:hover & {
+      @slot;
+    }
+  }
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
