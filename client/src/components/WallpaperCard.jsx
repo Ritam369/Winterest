@@ -22,7 +22,8 @@ const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
       />
 
       {/* Hover overlay */}
-      <div className="absolute inset-0 bg-black/30 opacity-0 group-hoverable:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3">
+      {/* <div className="absolute inset-0 bg-black/30 opacity-0 group-hoverable:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3"> */}
+      <div className="absolute inset-0 bg-black/30 opacity-0 pointer-events-none group-hoverable:opacity-100 group-hoverable:pointer-events-auto transition-opacity duration-200 flex flex-col justify-between p-3">
         {/* Download button */}
         <div className="flex justify-end">
           <button
