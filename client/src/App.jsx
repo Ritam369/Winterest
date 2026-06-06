@@ -7,7 +7,7 @@ import SkeletonGrid from './components/SkeletonGrid.jsx';
 import useTheme from './hooks/useTheme.js';
 
 const App = () => {
-  const { wallpapers, query, setQuery, loading, error, trackClick, trackDownload } = useWallpapers();
+  const { wallpapers, allWallpapers, query, setQuery, loading, error, trackClick, trackDownload } = useWallpapers();
   const [selected, setSelected] = useState(null);
   const { dark, toggle } = useTheme();
 
@@ -22,7 +22,7 @@ const App = () => {
 
   return (
     <div className="min-h-svh bg-[var(--color-canvas)]">
-      <Navbar query={query} onSearch={setQuery} dark={dark} onToggleTheme={toggle} />
+      <Navbar query={query} onSearch={setQuery} dark={dark} onToggleTheme={toggle} wallpapers={allWallpapers} />
 
       {/* <main className="max-w-screen-2xl mx-auto"> */}
       <main className="w-full px-4 md:px-8">

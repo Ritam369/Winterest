@@ -37,7 +37,7 @@ const useWallpapers = () => {
     );
   };
 
-  return { wallpapers: filtered ?? [], query, setQuery, loading, error, trackClick, trackDownload };
+  return { wallpapers: filtered ?? [], allWallpapers: wallpapers, query, setQuery, loading, error, trackClick, trackDownload };
 };
 
 export default useWallpapers;
