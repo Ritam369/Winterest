@@ -7,7 +7,7 @@
     "dev:server": "cd server && node --watch --env-file=../.env src/server.js",
     "dev:client": "cd client && pnpm dev",
     "dev": "pnpm run dev:server & pnpm run dev:client",
-    "upload": "node scripts/upload.mjs"
+    "upload": "node --env-file=.env scripts/upload.mjs"
   },
   "dependencies": {
     "cloudinary": "2.10.0",
@@ -16,5 +16,8 @@
     "express": "5.2.1",
     "mongoose": "9.6.3"
   },
-  "packageManager": "pnpm@10.28.0"
+  "packageManager": "pnpm@10.28.0",
+  "devDependencies": {
+    "sharp": "^0.35.3"
+  }
 }
