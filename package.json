@@ -2,10 +2,20 @@
   "name": "winterest",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev:server": "cd server && node --watch --env-file=../.env src/server.js",
     "dev:client": "cd client && pnpm dev",
     "dev": "pnpm run dev:server & pnpm run dev:client"
+  },
+  "dependencies": {
+    "cloudinary": "2.10.0",
+    "cors": "2.8.6",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "mongoose": "9.6.3",
+    "multer": "2.1.1",
+    "multer-storage-cloudinary": "4.0.0"
   },
   "packageManager": "pnpm@10.28.0"
 }

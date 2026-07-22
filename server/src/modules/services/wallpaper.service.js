@@ -1,9 +1,11 @@
 import multer from 'multer';
-import sharp from 'sharp';
 import cloudinary from '../../common/config/cloudinary.js';
 import Wallpaper from '../models/wallpaper.model.js';
 import ApiError from '../../common/utils/api-error.js';
 
+// Store the upload in memory; we stream the raw buffer straight to Cloudinary.
+// Cloudinary handles compression/optimisation via eager transformations, so we
+// no longer need the sharp native binary (which is incompatible with Vercel).
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
@@ -16,24 +18,21 @@ export const upload = multer({
   },
 });
 
-const LIMIT_BYTES = 10 * 1024 * 1024; // 10MB
-
-const compressToLimit = async (buffer, format) => {
-  let quality = 85;
-  let result = buffer;
-  while (result.length > LIMIT_BYTES && quality >= 20) {
-    result = await sharp(buffer)
-      .toFormat(format === 'png' ? 'png' : 'jpeg', { quality })
-      .toBuffer();
-    quality -= 15;
-  }
-  return result;
-};
-
+/**
+ * Streams a buffer to Cloudinary.
+ * Uses Cloudinary's `quality: auto` and `fetch_format: auto` to keep file
+ * sizes reasonable without a local compression step.
+ */
 const uploadToCloudinary = (buffer) =>
   new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: 'winterest', resource_type: 'image' },
+      {
+        folder: 'winterest',
+        resource_type: 'image',
+        // Let Cloudinary apply automatic quality/format optimisation
+        quality: 'auto',
+        fetch_format: 'auto',
+      },
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -55,11 +54,7 @@ const normalizeTags = (raw) => {
 };
 
 export const createWallpaper = async (file, body) => {
-  const fmt = file.mimetype === 'image/png' ? 'png' : 'jpeg';
-  const buffer = file.buffer.length > LIMIT_BYTES
-    ? await compressToLimit(file.buffer, fmt)
-    : file.buffer;
-  const result = await uploadToCloudinary(buffer);
+  const result = await uploadToCloudinary(file.buffer);
   const { public_id, secure_url, width, height, format } = result;
 
   const tags = normalizeTags(body.tags);
