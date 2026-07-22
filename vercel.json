@@ -2,12 +2,6 @@
   "version": 2,
   "buildCommand": "cd client && pnpm install && pnpm build",
   "outputDirectory": "client/dist",
-  "functions": {
-    "api/index.js": {
-      "runtime": "nodejs20.x",
-      "memory": 512
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",
@@ -15,7 +9,7 @@
     },
     {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|svg|ico|webp|woff|woff2|ttf|eot|map))",
-      "dest": "/client/dist/$1"
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
