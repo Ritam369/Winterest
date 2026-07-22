@@ -2,10 +2,20 @@ import * as wallpaperService from '../services/wallpaper.service.js';
 import ApiResponse from '../../common/utils/api-response.js';
 import ApiError from '../../common/utils/api-error.js';
 
+export const getSignature = (req, res, next) => {
+  try {
+    const data = wallpaperService.generateSignature();
+    ApiResponse.ok(res, 'Signature generated', data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Accepts JSON body with Cloudinary metadata after a direct browser→Cloudinary upload:
+// { public_id, secure_url, width, height, format, tags? }
 export const uploadWallpaper = async (req, res, next) => {
   try {
-    if (!req.file) throw ApiError.badRequest('No image file provided');
-    const wallpaper = await wallpaperService.createWallpaper(req.file, req.body);
+    const wallpaper = await wallpaperService.createWallpaper(req.body);
     ApiResponse.created(res, 'Wallpaper uploaded successfully', wallpaper);
   } catch (err) {
     next(err);

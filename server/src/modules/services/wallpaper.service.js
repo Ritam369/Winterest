@@ -1,45 +1,33 @@
-import multer from 'multer';
 import cloudinary from '../../common/config/cloudinary.js';
 import Wallpaper from '../models/wallpaper.model.js';
 import ApiError from '../../common/utils/api-error.js';
 
-// Store the upload in memory; we stream the raw buffer straight to Cloudinary.
-// Cloudinary handles compression/optimisation via eager transformations, so we
-// no longer need the sharp native binary (which is incompatible with Vercel).
-export const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-    const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
-    const ext = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
-    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) cb(null, true);
-    else cb(new Error('Only jpg, png and webp files are allowed'));
-  },
-});
+// ─── Signed Upload ────────────────────────────────────────────────────────────
+// The browser (or Requestly) calls GET /api/wallpapers/sign to get a signature,
+// then uploads the file directly to Cloudinary (bypassing our server entirely).
+// This sidesteps Vercel's 4.5 MB request body limit.
 
-/**
- * Streams a buffer to Cloudinary.
- * Uses Cloudinary's `quality: auto` and `fetch_format: auto` to keep file
- * sizes reasonable without a local compression step.
- */
-const uploadToCloudinary = (buffer) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: 'winterest',
-        resource_type: 'image',
-        // Let Cloudinary apply automatic quality/format optimisation
-        quality: 'auto',
-        fetch_format: 'auto',
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }
-    );
-    stream.end(buffer);
-  });
+export const generateSignature = () => {
+  const timestamp = Math.round(Date.now() / 1000);
+  const params = { folder: 'winterest', timestamp };
+
+  const signature = cloudinary.utils.api_sign_request(
+    params,
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  return {
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    folder: 'winterest',
+  };
+};
+
+// ─── Create (metadata only) ───────────────────────────────────────────────────
+// After the direct upload succeeds, the caller POSTs the Cloudinary result
+// fields to our server so we can persist them in MongoDB.
 
 const getOrientation = (width, height) => {
   if (width > height) return 'landscape';
@@ -53,23 +41,29 @@ const normalizeTags = (raw) => {
   return raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
 };
 
-export const createWallpaper = async (file, body) => {
-  const result = await uploadToCloudinary(file.buffer);
-  const { public_id, secure_url, width, height, format } = result;
+export const createWallpaper = async (body) => {
+  const { public_id, secure_url, width, height, format, tags } = body;
 
-  const tags = normalizeTags(body.tags);
-  const orientation = getOrientation(width, height);
+  if (!public_id || !secure_url || !width || !height || !format) {
+    throw ApiError.badRequest(
+      'Missing required fields: public_id, secure_url, width, height, format'
+    );
+  }
+
+  const orientation = getOrientation(Number(width), Number(height));
 
   return Wallpaper.create({
     cloudinaryId: public_id,
     url: secure_url,
-    width,
-    height,
+    width: Number(width),
+    height: Number(height),
     orientation,
     format,
-    tags,
+    tags: normalizeTags(tags),
   });
 };
+
+// ─── Other operations ─────────────────────────────────────────────────────────
 
 export const getAllWallpapers = async () => {
   return Wallpaper.find().sort({ createdAt: -1 }).lean();
