@@ -69,6 +69,25 @@ export const getAllWallpapers = async () => {
   return Wallpaper.find().sort({ createdAt: -1 }).lean();
 };
 
+// Returns one page of wallpapers (newest first).
+// Also returns total count so the client knows when all batches are exhausted.
+export const getWallpapersPaginated = async (page = 1, limit = 20) => {
+  const skip  = (page - 1) * limit;
+  const [wallpapers, total] = await Promise.all([
+    Wallpaper.find().sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Wallpaper.countDocuments(),
+  ]);
+  return { wallpapers, total, page, limit };
+};
+
+// Full-DB tag search — always searches everything, not just what's been paginated.
+export const searchWallpapersByTag = async (q) => {
+  const term = q.trim().toLowerCase();
+  return Wallpaper.find({ tags: { $regex: term, $options: 'i' } })
+    .sort({ createdAt: -1 })
+    .lean();
+};
+
 export const deleteWallpaper = async (id) => {
   const wallpaper = await Wallpaper.findById(id);
   if (!wallpaper) throw ApiError.notFound('Wallpaper not found');
@@ -80,7 +99,7 @@ export const incrementClicks = async (id) => {
   const wallpaper = await Wallpaper.findByIdAndUpdate(
     id,
     { $inc: { clicks: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   if (!wallpaper) throw ApiError.notFound('Wallpaper not found');
   return wallpaper;
@@ -90,7 +109,7 @@ export const incrementDownloads = async (id) => {
   const wallpaper = await Wallpaper.findByIdAndUpdate(
     id,
     { $inc: { downloads: 1 } },
-    { new: true }
+    { returnDocument: 'after' }
   ).lean();
   if (!wallpaper) throw ApiError.notFound('Wallpaper not found');
   return wallpaper;

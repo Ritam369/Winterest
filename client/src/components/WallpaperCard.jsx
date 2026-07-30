@@ -12,7 +12,7 @@ const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
   return (
     <div
       onClick={onClick}
-      className="group relative cursor-zoom-in rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-surface-card)] break-inside-avoid mb-3"
+      className="group relative cursor-zoom-in rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-surface-card)]"
     >
       <img
         src={url}

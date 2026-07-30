@@ -11,21 +11,36 @@ export const getSignature = (req, res, next) => {
   }
 };
 
+// GET /api/wallpapers?page=1&limit=20
+export const getWallpapers = async (req, res, next) => {
+  try {
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 20);
+    const result = await wallpaperService.getWallpapersPaginated(page, limit);
+    ApiResponse.ok(res, 'Wallpapers fetched successfully', result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/wallpapers/search?q=nature
+export const searchWallpapers = async (req, res, next) => {
+  try {
+    const q = (req.query.q ?? '').trim();
+    if (!q) return ApiResponse.ok(res, 'Search results', []);
+    const wallpapers = await wallpaperService.searchWallpapersByTag(q);
+    ApiResponse.ok(res, 'Search results', wallpapers);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Accepts JSON body with Cloudinary metadata after a direct browser→Cloudinary upload:
 // { public_id, secure_url, width, height, format, tags? }
 export const uploadWallpaper = async (req, res, next) => {
   try {
     const wallpaper = await wallpaperService.createWallpaper(req.body);
     ApiResponse.created(res, 'Wallpaper uploaded successfully', wallpaper);
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const getWallpapers = async (req, res, next) => {
-  try {
-    const wallpapers = await wallpaperService.getAllWallpapers();
-    ApiResponse.ok(res, 'Wallpapers fetched successfully', wallpapers);
   } catch (err) {
     next(err);
   }
