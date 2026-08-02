@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import WallpaperCard from './WallpaperCard.jsx';
 
 // ─── Column count based on viewport width ─────────────────────────────────────
@@ -37,23 +37,31 @@ const MasonryGrid = ({
 }) => {
   const colCount = useColumnCount();
 
-  // columns state: array of arrays of wallpaper objects
-  // Stored in a ref AND state so we can mutate incrementally without full recompute
-  const columnsRef      = useRef([]);         // current column arrays
-  const colHeightsRef   = useRef([]);          // running height of each column
-  const assignedIdsRef  = useRef(new Set());   // which _ids are already placed
+  // Columns store only _ids — never stale wallpaper objects.
+  // Live wallpaper data is always looked up from the wallpapers prop at render time.
+  const columnIdsRef    = useRef([]);   // array of arrays of _id strings
+  const colHeightsRef   = useRef([]);
+  const assignedIdsRef  = useRef(new Set());
   const prevColCountRef = useRef(colCount);
 
-  const [columns, setColumns] = useState([]);
+  const [columnIds, setColumnIds] = useState([]); // triggers re-render
 
+  // Build a fast id→wallpaper lookup map from the live prop
+  const wallpaperMap = useMemo(() => {
+    const map = new Map();
+    for (const w of wallpapers) map.set(w._id, w);
+    return map;
+  }, [wallpapers]);
+
+  // Incremental column assignment — only processes new items
   useEffect(() => {
-    const colWidth     = getColWidth(colCount);
-    const GAP          = 12;
-    const colChanged   = prevColCountRef.current !== colCount;
+    const colWidth   = getColWidth(colCount);
+    const GAP        = 12;
+    const colChanged = prevColCountRef.current !== colCount;
     prevColCountRef.current = colCount;
 
-    // If column count changed (e.g. window resized), rebuild everything from scratch
     if (colChanged) {
+      // Rebuild from scratch when column count changes (window resize)
       const newCols    = Array.from({ length: colCount }, () => []);
       const newHeights = new Array(colCount).fill(0);
       const newIds     = new Set();
@@ -61,25 +69,24 @@ const MasonryGrid = ({
       for (const w of wallpapers) {
         const shortest       = newHeights.indexOf(Math.min(...newHeights));
         const renderedHeight = colWidth * (w.height / w.width);
-        newCols[shortest].push(w);
+        newCols[shortest].push(w._id);
         newHeights[shortest] += renderedHeight + GAP;
         newIds.add(w._id);
       }
 
-      columnsRef.current     = newCols;
+      columnIdsRef.current   = newCols;
       colHeightsRef.current  = newHeights;
       assignedIdsRef.current = newIds;
-      setColumns(newCols.map((c) => [...c]));
+      setColumnIds(newCols.map((c) => [...c]));
       return;
     }
 
-    // Normal case: only assign items not yet placed (new batch items)
+    // Only assign items not yet placed (new batch arrivals)
     const unassigned = wallpapers.filter((w) => !assignedIdsRef.current.has(w._id));
     if (unassigned.length === 0) return;
 
-    // Ensure columns array is sized correctly (first render)
-    if (columnsRef.current.length !== colCount) {
-      columnsRef.current    = Array.from({ length: colCount }, () => []);
+    if (columnIdsRef.current.length !== colCount) {
+      columnIdsRef.current  = Array.from({ length: colCount }, () => []);
       colHeightsRef.current = new Array(colCount).fill(0);
     }
 
@@ -87,14 +94,12 @@ const MasonryGrid = ({
       const heights        = colHeightsRef.current;
       const shortest       = heights.indexOf(Math.min(...heights));
       const renderedHeight = colWidth * (w.height / w.width);
-
-      columnsRef.current[shortest].push(w);
+      columnIdsRef.current[shortest].push(w._id);
       colHeightsRef.current[shortest] += renderedHeight + GAP;
       assignedIdsRef.current.add(w._id);
     }
 
-    // Shallow-copy to trigger re-render; existing column arrays grow in place
-    setColumns(columnsRef.current.map((c) => [...c]));
+    setColumnIds(columnIdsRef.current.map((c) => [...c]));
   }, [wallpapers, colCount]);
 
   if (wallpapers.length === 0 && !loadingMore) {
@@ -113,16 +118,20 @@ const MasonryGrid = ({
   return (
     <div className="flex flex-col">
       <div className="flex gap-3 px-1 py-4 items-start">
-        {columns.map((col, colIdx) => (
+        {columnIds.map((col, colIdx) => (
           <div key={colIdx} className="flex flex-col gap-3 flex-1 min-w-0">
-            {col.map((wallpaper) => (
-              <WallpaperCard
-                key={wallpaper._id}
-                wallpaper={wallpaper}
-                onClick={() => onCardClick(wallpaper)}
-                onDownload={() => onDownload(wallpaper)}
-              />
-            ))}
+            {col.map((id) => {
+              const wallpaper = wallpaperMap.get(id);
+              if (!wallpaper) return null;
+              return (
+                <WallpaperCard
+                  key={id}
+                  wallpaper={wallpaper}
+                  onClick={() => onCardClick(wallpaper)}
+                  onDownload={() => onDownload(wallpaper)}
+                />
+              );
+            })}
           </div>
         ))}
       </div>

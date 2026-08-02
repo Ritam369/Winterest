@@ -1,7 +1,9 @@
 import downloadWallpaper from '../hooks/downloadWallpaper.js';
+import { cardUrl } from '../services/imagekit.js';
 
 const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
   const { url, tags = [], clicks, downloads } = wallpaper;
+  const displayUrl = cardUrl(url);
 
   const handleDownload = async (e) => {
     e.stopPropagation();
@@ -15,7 +17,7 @@ const WallpaperCard = ({ wallpaper, onClick, onDownload }) => {
       className="group relative cursor-zoom-in rounded-[var(--radius-md)] overflow-hidden bg-[var(--color-surface-card)]"
     >
       <img
-        src={url}
+        src={displayUrl}
         alt={tags.join(', ') || 'wallpaper'}
         loading="lazy"
         className="w-full h-auto block"

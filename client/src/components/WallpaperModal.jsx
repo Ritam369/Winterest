@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import downloadWallpaper from '../hooks/downloadWallpaper.js';
+import { modalUrl } from '../services/imagekit.js';
 
 const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
   const tags = wallpaper.tags ?? [];
+  const displayUrl = modalUrl(wallpaper.url);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
@@ -33,7 +35,7 @@ const WallpaperModal = ({ wallpaper, onClose, onDownload }) => {
         {/* Image */}
         <div className="flex-1 bg-[var(--color-charcoal)] flex items-center justify-center overflow-hidden">
           <img
-            src={wallpaper.url}
+            src={displayUrl}
             alt={tags.join(', ') || 'wallpaper'}
             className="max-w-full max-h-[90svh] md:max-h-[85svh] object-contain"
           />

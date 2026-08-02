@@ -21,11 +21,16 @@ const App = () => {
     sentinelRef,
   } = useWallpapers();
 
-  const [selected, setSelected] = useState(null);
+  // Store only the _id, then derive the full object from the live wallpapers array.
+  // This ensures the modal always reflects the latest clicks/downloads count
+  // after an optimistic update instead of showing the frozen snapshot.
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = allWallpapers.find((w) => w._id === selectedId) ?? null;
+
   const { dark, toggle } = useTheme();
 
   const handleCardClick = (wallpaper) => {
-    setSelected(wallpaper);
+    setSelectedId(wallpaper._id);
     trackClick(wallpaper._id);
   };
 
@@ -61,7 +66,7 @@ const App = () => {
       {selected && (
         <WallpaperModal
           wallpaper={selected}
-          onClose={() => setSelected(null)}
+          onClose={() => setSelectedId(null)}
           onDownload={() => handleDownload(selected)}
         />
       )}
