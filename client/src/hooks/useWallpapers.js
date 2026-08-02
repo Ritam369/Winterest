@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api.js';
 
 const BATCH_SIZE    = 20;
-const AUTO_INTERVAL = 5000; // ms between auto-fetches when user doesn't scroll
+const AUTO_INTERVAL = 5000;
 
 // ─── sessionStorage helpers ───────────────────────────────────────────────────
 const SS_KEY = 'winterest_feed';
@@ -20,19 +20,19 @@ const loadSession = () => {
 const saveSession = (wallpapers, page, total) => {
   try {
     sessionStorage.setItem(SS_KEY, JSON.stringify({ wallpapers, page, total }));
-  } catch {
-    // storage quota exceeded — silently skip
-  }
+  } catch {}
+};
+
+const clearSession = () => {
+  try { sessionStorage.removeItem(SS_KEY); } catch {}
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 const useWallpapers = () => {
-  const session = loadSession();
-
-  const [wallpapers, setWallpapers]       = useState(session?.wallpapers ?? []);
-  const [page, setPage]                   = useState(session?.page       ?? 0);
-  const [total, setTotal]                 = useState(session?.total      ?? null);
-  const [loading, setLoading]             = useState(!session);
+  const [wallpapers, setWallpapers]       = useState([]);
+  const [page, setPage]                   = useState(0);
+  const [total, setTotal]                 = useState(null);
+  const [loading, setLoading]             = useState(true);  // true until first batch is shown
   const [loadingMore, setLoadingMore]     = useState(false);
   const [error, setError]                 = useState(null);
 
@@ -40,20 +40,22 @@ const useWallpapers = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
 
-  // Refs so event handlers always see current values without stale closures
-  const pageRef        = useRef(page);
-  const totalRef       = useRef(total);
+  const pageRef        = useRef(0);
+  const totalRef       = useRef(null);
   const loadingMoreRef = useRef(false);
-  const wallpapersRef  = useRef(wallpapers);
-  const hasScrolledRef = useRef(false); // tracks whether a scroll happened since last fetch
+  const wallpapersRef  = useRef([]);
+  const hasScrolledRef = useRef(false);
 
-  pageRef.current       = page;
-  totalRef.current      = total;
-  wallpapersRef.current = wallpapers;
+  const hasMore = totalRef.current === null || wallpapersRef.current.length < totalRef.current;
+  const hasMoreRef = useRef(true);
 
-  const hasMore = total === null || wallpapers.length < total;
-  const hasMoreRef = useRef(hasMore);
-  hasMoreRef.current = hasMore;
+  // Keep refs in sync
+  const syncRefs = (w, p, t) => {
+    wallpapersRef.current = w;
+    pageRef.current       = p;
+    totalRef.current      = t;
+    hasMoreRef.current    = t === null || w.length < t;
+  };
 
   // ── Core fetch ───────────────────────────────────────────────────────────────
   const fetchNextBatch = useCallback(async () => {
@@ -61,7 +63,7 @@ const useWallpapers = () => {
     if (totalRef.current !== null && wallpapersRef.current.length >= totalRef.current) return;
 
     loadingMoreRef.current = true;
-    hasScrolledRef.current = false; // reset scroll flag after each fetch
+    hasScrolledRef.current = false;
     setLoadingMore(true);
 
     const nextPage = pageRef.current + 1;
@@ -77,6 +79,7 @@ const useWallpapers = () => {
         const existingIds = new Set(prev.map((w) => w._id));
         const fresh  = batch.filter((w) => !existingIds.has(w._id));
         const merged = [...prev, ...fresh];
+        syncRefs(merged, nextPage, newTotal);
         saveSession(merged, nextPage, newTotal);
         return merged;
       });
@@ -92,70 +95,89 @@ const useWallpapers = () => {
     }
   }, []);
 
-  // ── Initial load ─────────────────────────────────────────────────────────────
+  // ── Initial load — always validate session against server ────────────────────
+  // Fetch page 1 from server every time the page loads.
+  // If the newest item matches what's in sessionStorage, restore the full session
+  // (so the user doesn't re-fetch pages they already saw).
+  // If it doesn't match (new images added), discard the session and start fresh.
   useEffect(() => {
-    if (session) return; // restored from sessionStorage — skip
-    fetchNextBatch();
+    const init = async () => {
+      try {
+        const res = await api.get('/wallpapers', {
+          params: { page: 1, limit: BATCH_SIZE },
+        });
+
+        const { wallpapers: firstBatch, total: newTotal } = res.data.data;
+
+        const session        = loadSession();
+        const serverNewestId = firstBatch[0]?._id;
+        const sessionNewestId = session?.wallpapers?.[0]?._id;
+
+        if (session && serverNewestId === sessionNewestId && session.wallpapers.length >= BATCH_SIZE) {
+          // Session is still valid — restore it
+          setWallpapers(session.wallpapers);
+          setPage(session.page);
+          setTotal(newTotal); // always use fresh total in case more were added
+          syncRefs(session.wallpapers, session.page, newTotal);
+        } else {
+          // New images exist or no valid session — start fresh from page 1
+          clearSession();
+          setWallpapers(firstBatch);
+          setPage(1);
+          setTotal(newTotal);
+          syncRefs(firstBatch, 1, newTotal);
+          saveSession(firstBatch, 1, newTotal);
+        }
+      } catch {
+        setError('Failed to load wallpapers');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Scroll detection ─────────────────────────────────────────────────────────
-  // Any scroll event triggers the next batch immediately (if not already loading
-  // and there's more to fetch). After fetching, the flag resets so the next
-  // scroll can trigger again.
   useEffect(() => {
-    if (!hasMore) return; // nothing left to fetch — don't attach listener
-
     const onScroll = () => {
       if (!hasScrolledRef.current && !loadingMoreRef.current && hasMoreRef.current) {
         hasScrolledRef.current = true;
         fetchNextBatch();
       }
     };
-
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, [hasMore, fetchNextBatch]);
+  }, [fetchNextBatch]);
 
   // ── 5-second auto-fetch timer ────────────────────────────────────────────────
-  // Fires every 5s as long as: not in search mode, not loading, and more to fetch.
   useEffect(() => {
     if (query.trim()) return;
-    if (!hasMore) return;
 
     const id = setInterval(() => {
-      if (!loadingMoreRef.current) {
+      if (!loadingMoreRef.current && hasMoreRef.current) {
         fetchNextBatch();
       }
     }, AUTO_INTERVAL);
 
     return () => clearInterval(id);
-  }, [query, hasMore, fetchNextBatch]);
+  }, [query, fetchNextBatch]);
 
   // ── Server-side search ───────────────────────────────────────────────────────
   useEffect(() => {
     const q = query.trim();
-
-    if (!q) {
-      setSearchResults(null);
-      return;
-    }
+    if (!q) { setSearchResults(null); return; }
 
     setSearchLoading(true);
     setSearchResults(null);
 
     const controller = new AbortController();
-
     api
-      .get('/wallpapers/search', {
-        params: { q },
-        signal: controller.signal,
-      })
+      .get('/wallpapers/search', { params: { q }, signal: controller.signal })
       .then((res) => setSearchResults(res.data.data ?? []))
       .catch((err) => {
-        if (err.name !== 'CanceledError' && err.name !== 'AbortError') {
-          setSearchResults([]);
-        }
+        if (err.name !== 'CanceledError' && err.name !== 'AbortError') setSearchResults([]);
       })
       .finally(() => setSearchLoading(false));
 
@@ -165,34 +187,29 @@ const useWallpapers = () => {
   // ── Track interactions ───────────────────────────────────────────────────────
   const trackClick = useCallback((id) => {
     api.patch(`/wallpapers/${id}/click`).catch(() => {});
-    setWallpapers((prev) =>
-      prev.map((w) => (w._id === id ? { ...w, clicks: w.clicks + 1 } : w))
-    );
+    setWallpapers((prev) => prev.map((w) => (w._id === id ? { ...w, clicks: w.clicks + 1 } : w)));
   }, []);
 
   const trackDownload = useCallback((id) => {
     api.patch(`/wallpapers/${id}/download`).catch(() => {});
-    setWallpapers((prev) =>
-      prev.map((w) => (w._id === id ? { ...w, downloads: w.downloads + 1 } : w))
-    );
+    setWallpapers((prev) => prev.map((w) => (w._id === id ? { ...w, downloads: w.downloads + 1 } : w)));
   }, []);
 
   const isSearchMode   = query.trim().length > 0;
   const displayList    = isSearchMode ? (searchResults ?? []) : wallpapers;
-  const isLoadingFirst = loading && wallpapers.length === 0;
 
   return {
-    wallpapers:    displayList,
+    wallpapers:   displayList,
     allWallpapers: wallpapers,
     query,
     setQuery,
-    loading:      isLoadingFirst,
+    loading,
     loadingMore:  isSearchMode ? searchLoading : loadingMore,
-    hasMore:      isSearchMode ? false : hasMore,
+    hasMore:      isSearchMode ? false : hasMoreRef.current,
     error,
     trackClick,
     trackDownload,
-    sentinelRef:  useRef(null), // kept for MasonryGrid DOM structure, no longer observed
+    sentinelRef:  useRef(null),
   };
 };
 
