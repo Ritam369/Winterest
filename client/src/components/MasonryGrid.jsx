@@ -53,15 +53,23 @@ const MasonryGrid = ({
     return map;
   }, [wallpapers]);
 
-  // Incremental column assignment — only processes new items
+  // Incremental column assignment — only processes new items.
+  // Resets fully when the wallpapers list changes non-incrementally
+  // (e.g. switching to search results or clearing search).
   useEffect(() => {
     const colWidth   = getColWidth(colCount);
     const GAP        = 12;
     const colChanged = prevColCountRef.current !== colCount;
     prevColCountRef.current = colCount;
 
-    if (colChanged) {
-      // Rebuild from scratch when column count changes (window resize)
+    // Detect a non-incremental change: any currently assigned id is no longer
+    // in the incoming wallpapers list (feed→search, search→feed, search→new search)
+    const incomingIds   = new Set(wallpapers.map((w) => w._id));
+    const isNonIncremental = colChanged ||
+      [...assignedIdsRef.current].some((id) => !incomingIds.has(id));
+
+    if (isNonIncremental) {
+      // Full rebuild from scratch
       const newCols    = Array.from({ length: colCount }, () => []);
       const newHeights = new Array(colCount).fill(0);
       const newIds     = new Set();
@@ -81,7 +89,7 @@ const MasonryGrid = ({
       return;
     }
 
-    // Only assign items not yet placed (new batch arrivals)
+    // Normal case: only assign items not yet placed (new batch arrivals)
     const unassigned = wallpapers.filter((w) => !assignedIdsRef.current.has(w._id));
     if (unassigned.length === 0) return;
 
